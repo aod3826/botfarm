@@ -352,7 +352,10 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 <!-- ══════ SCRIPT ════════════════════════════════════════════ -->
 <script>
 // ─── CONFIG ─────────────────────────────────────────────────
-const GAS_URL = "https://script.google.com/macros/s/AKfycbz8kroj0YKhSk5FP4WaI6qq-11RXs54C2auvdsCR8qidtApjUyeLFcznIt8-nelJ251Jw/exec"; // ⚠️ เปลี่ยนหลัง Deploy GAS
+const GAS_URL = "
+https://script.google.com/macros/s/AKfycbz8kroj0YKhSk5FP4WaI6qq-11RXs54C2auvdsCR8qidtApjUyeLFcznIt8-nelJ251Jw/exec?noredirect=true
+
+"; // ⚠️ เปลี่ยนหลัง Deploy GAS
 
 // ─── TELEGRAM ────────────────────────────────────────────────
 const tg = window.Telegram?.WebApp;
@@ -396,21 +399,24 @@ function openModal(title, buttons) {
 function closeModal() { document.getElementById("action-modal").classList.remove("open"); }
 
 // ─── API ─────────────────────────────────────────────────────
+// ── ใช้ GET ทั้งหมด เพื่อหลีกเลี่ยง CORS preflight ──────────
 async function apiFetch(action, params = {}) {
   const url = new URL(GAS_URL);
   url.searchParams.set("action", action);
   url.searchParams.set("userId", userId);
-  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, String(v)));
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error("HTTP " + res.status);
   return res.json();
 }
+// apiPost → เปลี่ยนเป็น GET เพื่อแก้ปัญหา CORS
 async function apiPost(body) {
-  const res = await fetch(GAS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, ...body }),
+  const url = new URL(GAS_URL);
+  url.searchParams.set("userId", userId);
+  Object.entries(body).forEach(([k,v]) => {
+    if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
+  const res = await fetch(url.toString());
   if (!res.ok) throw new Error("HTTP " + res.status);
   return res.json();
 }
